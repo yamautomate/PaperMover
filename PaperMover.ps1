@@ -1,7 +1,7 @@
 Import-Module Yamautomate.Core
 
 #Config Section
-$PathToConfig = "C:\Temp\sampleconfig.json"
+$PathToConfig = "C:\ScheduledTasks\ProductionPaperMover\PaperMoverConfig.json"
 $config = Get-Content -raw -Path $PathToConfig | ConvertFrom-Json -ErrorAction Stop
 
 #Mapping config to variables
@@ -11,10 +11,19 @@ $PathToDirectoryToProcess = $config.ProductionPaperMoverConfig.DirectoryToProces
 $RootPathToMoveFilesInto = $config.ProductionPaperMoverConfig.MoveProcessedFilesInto
 $Endpoint = $config.AzureDocumentIntelligenceService.EndpointUrl
 
+
+$AzKeyVaultName = $config.AzureKeyVault.KeyVaultName
+$AzKeyVaultClientId = $config.AzureKeyVault.AzureAppRegistrationClientId
+$AzKeyVaultTenantId = $config.AzureKeyVault.tenantId
+$AzKeyVaultCertThumbprint =  $config.AzureKeyVault.CertificateThumbprint
+$AzKeyVaultSecretName = $config.AzureDocumentIntelligenceService.AKVAPIKeyCredentialName
+
+
 #Grabbing files to process
 $FilesToProcess = Get-ChildItem -Path $PathToDirectoryToProcess
+$AzAIAPIKeySecret = Get-YcSecret -SecretLocation AzureKeyVault -secretName $AzKeyVaultSecretName -AzKeyVaultClientId $AzKeyVaultClientId -AzKeyVaultTenantId $AzKeyVaultTenantId -AzKeyVaultName $AzKeyVaultName -AzKeyVaultCertThumbprint $AzKeyVaultCertThumbprint -AsPlainText $true
+$AzAIAPIKeySecret = ConvertTo-SecureString -String $AzAIAPIKeySecret  -AsPlainText -Force
 
-$AzAIAPIKeySecret = Get-YcSecret -secretName "AzAiDi"
 
 foreach ($file in $FilesToProcess)
 {
@@ -36,7 +45,7 @@ foreach ($file in $FilesToProcess)
     $APIKey = Convert-YCSecureStringToPlainText -secureString $AzAIAPIKeySecret
     $PatternResults = Get-YcPatternfromAzAIDIAnalysis -AnalysisURI $AzAIAnalysisURI -APIKey $APIKey -pattern $pattern
     $APIKey = $null
-0
+
     if ($PatternResults.Count -gt 1)
     {
         $PatternResults = $PatternResults[0]
